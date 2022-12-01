@@ -12,13 +12,13 @@ class UploadManager {
     }
 
     registerListeners() {
-        this.component.on('upload:generatedSignedUrl', (name, url) => {
+        this.component.on('upload:generatedSignedUrl', (name, url, index) => {
             // We have to add reduntant "setLoading" calls because the dom-patch
             // from the first response will clear the setUploadLoading call
             // from the first upload call.
             setUploadLoading(this.component, name)
 
-            this.handleSignedUrl(name, url)
+            this.handleSignedUrl(name, url, index)
         })
 
         this.component.on('upload:generatedSignedUrlForS3', (name, payload) => {
