@@ -7,6 +7,8 @@ class UploadManager {
         this.component = component
         this.uploadBag = new MessageBag
         this.removeBag = new MessageBag
+        this.transfersRemaining = 0
+        this.paths = []
     }
 
     registerListeners() {
@@ -31,6 +33,7 @@ class UploadManager {
     }
 
     upload(name, file, finishCallback, errorCallback, progressCallback) {
+        this.transfersRemaining = 1
         this.setUpload(name, {
             files: [file],
             multiple: false,
@@ -41,6 +44,7 @@ class UploadManager {
     }
 
     uploadMultiple(name, files, finishCallback, errorCallback, progressCallback) {
+        this.transfersRemaining = files.length
         this.setUpload(name, {
             files: Array.from(files),
             multiple: true,
@@ -67,6 +71,8 @@ class UploadManager {
     }
 
     handleSignedUrl(name, url) {
+        this.transfersRemaining = 1
+
         let formData = new FormData()
         Array.from(this.uploadBag.first(name).files).forEach(file => formData.append('files[]', file, file.name))
 
@@ -83,8 +89,8 @@ class UploadManager {
         })
     }
 
-    handleS3PreSignedUrl(name, payload) {
-        let formData = this.uploadBag.first(name).files[0]
+    handleS3PreSignedUrl(name, payload, index) {
+        let formData = this.uploadBag.first(name).files[index]
 
         let headers = payload.headers
         if ('Host' in headers) delete headers.Host
@@ -113,8 +119,12 @@ class UploadManager {
         request.addEventListener('load', () => {
             if ((request.status+'')[0] === '2') {
                 let paths = retrievePaths(request.response && JSON.parse(request.response))
+                this.paths = this.paths.concat(paths)
+                this.transfersRemaining--
 
-                this.component.call('finishUpload', name, paths, this.uploadBag.first(name).multiple)
+                if (this.transfersRemaining === 0) {
+                    this.component.call('finishUpload', name, this.paths, this.uploadBag.first(name).multiple)
+                }
 
                 return
             }

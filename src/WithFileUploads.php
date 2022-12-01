@@ -12,11 +12,11 @@ trait WithFileUploads
     public function startUpload($name, $fileInfo, $isMultiple)
     {
         if (FileUploadConfiguration::isUsingS3()) {
-            throw_if($isMultiple, S3DoesntSupportMultipleFileUploads::class);
+            foreach($fileInfo as $index => $file) {
+                $file = UploadedFile::fake()->create($file['name'], $file['size'] / 1024, $file['type']);
 
-            $file = UploadedFile::fake()->create($fileInfo[0]['name'], $fileInfo[0]['size'] / 1024, $fileInfo[0]['type']);
-
-            $this->emit('upload:generatedSignedUrlForS3', $name, GenerateSignedUploadUrl::forS3($file))->self();
+                $this->emit('upload:generatedSignedUrlForS3', $name, GenerateSignedUploadUrl::forS3($file), $index)->self();
+            }
 
             return;
         }
