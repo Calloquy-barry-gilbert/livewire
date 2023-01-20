@@ -43,6 +43,14 @@ class GenerateSignedUploadUrl
             $bucket = invade($adapter)->bucket;
         }
 
+        if (property_exists($adapter, 'options')) {
+            $options = $adapter->options ?? null;
+        }
+        if ($options === null) {
+            $options = invade($adapter)->options ?? null;
+        }
+        $serverSideEncryption = $options['ServerSideEncryption'] ?? null;
+
         $fileType = $file->getMimeType();
         $fileHashName = TemporaryUploadedFile::generateHashNameWithOriginalNameEmbedded($file);
         $path = FileUploadConfiguration::path($fileHashName);
@@ -54,6 +62,7 @@ class GenerateSignedUploadUrl
             'ContentType' => $fileType ?: 'application/octet-stream',
             'CacheControl' => null,
             'Expires' => null,
+            'ServerSideEncryption' => $serverSideEncryption,
         ]));
 
         $signedRequest = $client->createPresignedRequest(
